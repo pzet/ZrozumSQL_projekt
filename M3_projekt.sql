@@ -1,8 +1,43 @@
--- schemat expense_tracker
+-- EXPENSE TRACKER
 
---DROP SCHEMA IF EXISTS expense_tracker CASCADE;
+-- rola expense_tracker_user
 
---CREATE SCHEMA expense_tracker;
+DROP ROLE IF EXISTS expense_tracker_user;
+CREATE ROLE expense_tracker_user WITH LOGIN PASSWORD 'Wujek$knerus';
+
+
+-- odbierz uprawnienia tworzenia obiektów w schemacie public roli PUBLIC
+
+REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+
+
+-- usuń schemat expense_tracker jeśli istnieje
+
+DROP SCHEMA IF EXISTS expense_tracker CASCADE;
+
+
+-- grupa expense_tracker_group
+REASSIGN OWNED BY expense_tracker_group TO postgres;
+DROP OWNED BY expense_tracker_group;
+DROP ROLE IF EXISTS expense_tracker_group;
+CREATE ROLE expense_tracker_group;
+
+
+-- utwórz schemat expense_tracker
+
+CREATE SCHEMA IF NOT EXISTS expense_tracker AUTHORIZATION expense_tracker_group;
+
+
+-- przywileje grupy expense_tracker_group
+
+GRANT CONNECT ON DATABASE postgres TO expense_tracker_group;
+
+GRANT ALL PRIVILEGES ON SCHEMA expense_tracker TO expense_tracker_group;
+
+
+-- dodaj rolę expense_tracker_group użytkownikowi expense_tracker_user
+
+GRANT expense_tracker_group TO expense_tracker_user;
 
 -- tabela bank_account_owner
 
@@ -18,9 +53,10 @@ CREATE TABLE IF NOT EXISTS expense_tracker.bank_account_owner (
 	update_type TIMESTAMP DEFAULT current_timestamp
 );
 
+
 -- tabela bank_account_types
 
-DROP TABLE IF EXISTS expense_tracker.bank_account_types
+DROP TABLE IF EXISTS expense_tracker.bank_account_types;
 
 CREATE TABLE IF NOT EXISTS expense_tracker.bank_account_types (
 	id_ba_type INT PRIMARY KEY,
@@ -31,30 +67,9 @@ CREATE TABLE IF NOT EXISTS expense_tracker.bank_account_types (
 	id_ba_own INT,
 	insert_date TIMESTAMP DEFAULT current_timestamp,
 	update_date TIMESTAMP DEFAULT current_timestamp,
-	CONSTRAINT bank_account_types_fk FOREIGN KEY (id_ba_own) REFERENCES bank_account_owner(id_ba_own);
+	CONSTRAINT bank_account_owner_fk FOREIGN KEY (id_ba_own) REFERENCES expense_tracker.bank_account_owner(id_ba_own)
 );
 
--- tabela transactions
-
-DROP TABLE IF EXISTS expense_tracker.transactions;
-
-CREATE TABLE IF NOT EXISTS expense_tracker.transactions (
-	id_trans_ba INT PRIMARY KEY,
-	id_trans_cat INT,
-	id_trans_subcat INT,
-	id_trans_type INT,
-	id_user INT,
-	transaction_date DATE DEFAULT current_date,
-	transaction_value NUMERIC(9, 2),
-	transaction_description TEXT,
-	insert_date TIMESTAMP DEFAULT current_timestamp,
-	update_date TIMESTAMP DEFAULT current_timestamp,
-	CONSTRAINT transaction_bank_accounts_fk FOREIGN KEY (id_trans_ba) REFERENCES transaction_bank_accounts(id_trans_ba),
-	CONSTRAINT transaction_category_fk FOREIGN KEY (id_trans_cat) REFERENCES transaction_bank_accounts(id_trans_cat),
-	CONSTRAINT transaction_subcategory_fk FOREIGN KEY (id_trans_subcat) REFERENCES transaction_bank_accounts(id_trans_subcat),
-	CONSTRAINT transaction_type_fk FOREIGN KEY (id_trans_type) REFERENCES transaction_type(id_trans_type),
-	CONSTRAINT users_fk FOREIGN KEY (id_user) REFERENCES users(id_user)
-);
 
 -- tabela transaction_bank_accounts
 
@@ -69,9 +84,10 @@ CREATE TABLE IF NOT EXISTS expense_tracker.transaction_bank_accounts (
 	active BOOLEAN NOT NULL DEFAULT TRUE,
 	insert_date TIMESTAMP DEFAULT current_timestamp,
 	update_date TIMESTAMP DEFAULT current_timestamp,
-	CONSTRAINT bank_account_owner_fk FOREIGN KEY (id_ba_own) REFERENCES bank_account_owner(id_ba_own),
-	CONSTRAINT bank_account_types_fk FOREIGN KEY (id_ba_type) REFERENCES bank_account_types(id_ba_type)
+	CONSTRAINT bank_account_owner_fk FOREIGN KEY (id_ba_own) REFERENCES expense_tracker.bank_account_owner(id_ba_own),
+	CONSTRAINT bank_account_types_fk FOREIGN KEY (id_ba_type) REFERENCES expense_tracker.bank_account_types(id_ba_type)
 );
+
 
 -- tabela transaction_category
 
@@ -86,6 +102,7 @@ CREATE TABLE IF NOT EXISTS expense_tracker.transaction_category (
 	update_date TIMESTAMP DEFAULT current_timestamp
 );
 
+
 -- tabela transaction_subcategory
 
 DROP TABLE IF EXISTS expense_tracker.transaction_subcategory;
@@ -98,8 +115,9 @@ CREATE TABLE IF NOT EXISTS expense_tracker.transaction_subcategory (
 	active BOOLEAN NOT NULL DEFAULT TRUE,
 	insert_date TIMESTAMP DEFAULT current_timestamp,
 	update_date TIMESTAMP DEFAULT current_timestamp,
-	CONSTRAINT transaction_category_fk FOREIGN KEY (id_trans_cat) REFERENCES transaction_category(id_trans_cat)
+	CONSTRAINT transaction_category_fk FOREIGN KEY (id_trans_cat) REFERENCES expense_tracker.transaction_category(id_trans_cat)
 );
+
 
 -- tabela transaction_type
 
@@ -113,6 +131,7 @@ CREATE TABLE IF NOT EXISTS expense_tracker.transaction_type (
 	insert_date TIMESTAMP DEFAULT current_timestamp,
 	update_date TIMESTAMP DEFAULT current_timestamp
 );
+
 
 -- tabela users
 
@@ -131,23 +150,24 @@ CREATE TABLE IF NOT EXISTS expense_tracker.users (
 );
 
 
---- MODUŁ 4
+-- tabela transactions
 
--- rola expense_tracker_user
-CREATE ROLE expense_tracker_user WITH LOGIN PASSWORD 'Wujek$knerus';
+DROP TABLE IF EXISTS expense_tracker.transactions;
 
--- usun przywilej CREATE w schemacie public dla roli PUBLIC
-REVOKE CREATE ON SCHEMA public FROM PUBLIC;
-
--- usun schemat training
-
-DROP SCHEMA IF EXISTS training CASCADE;
-
--- grupa expense_tracker_group
-
-CREATE ROLE expense_tracker_group;
---(5. Utwórz schemat expense_tracker, korzystając z atrybutu AUTHORIZATION, ustalając
--- własnośćna rolę expense_tracker_group.)
-GRANT CONNECT ON postgres;
-GRANT ALL PRIVILEGES ON SCHEMA training TO expense_tracker_group;
-GRANT expense_tracker_group TO expense_tracker_user;
+CREATE TABLE IF NOT EXISTS expense_tracker.transactions (
+	id_trans_ba INT PRIMARY KEY,
+	id_trans_cat INT,
+	id_trans_subcat INT,
+	id_trans_type INT,
+	id_user INT,
+	transaction_date DATE DEFAULT current_date,
+	transaction_value NUMERIC(9, 2),
+	transaction_description TEXT,
+	insert_date TIMESTAMP DEFAULT current_timestamp,
+	update_date TIMESTAMP DEFAULT current_timestamp,
+	CONSTRAINT transaction_bank_accounts_fk FOREIGN KEY (id_trans_ba) REFERENCES expense_tracker.transaction_bank_accounts(id_trans_ba),
+	CONSTRAINT transaction_category_fk FOREIGN KEY (id_trans_cat) REFERENCES expense_tracker.transaction_category(id_trans_cat),
+	CONSTRAINT transaction_subcategory_fk FOREIGN KEY (id_trans_subcat) REFERENCES expense_tracker.transaction_subcategory(id_trans_subcat),
+	CONSTRAINT transaction_type_fk FOREIGN KEY (id_trans_type) REFERENCES expense_tracker.transaction_type(id_trans_type),
+	CONSTRAINT users_fk FOREIGN KEY (id_user) REFERENCES expense_tracker.users(id_user)
+);
