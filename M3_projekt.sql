@@ -131,7 +131,7 @@ CREATE TABLE IF NOT EXISTS expense_tracker.users (
 );
 
 
---- MODU£ 4
+--- MODU≈Å 4
 
 -- rola expense_tracker_user
 CREATE ROLE expense_tracker_user WITH LOGIN PASSWORD 'Wujek$knerus';
@@ -146,8 +146,8 @@ DROP SCHEMA IF EXISTS training CASCADE;
 -- grupa expense_tracker_group
 
 CREATE ROLE expense_tracker_group;
---(5. UtwÛrz schemat expense_tracker, korzystajπc z atrybutu AUTHORIZATION, ustalajπc
--- w≥asnoúÊna rolÍ expense_tracker_group.)
+--(5. Utw√≥rz schemat expense_tracker, korzystajƒÖc z atrybutu AUTHORIZATION, ustalajƒÖc
+-- w≈Çasno≈õƒána rolƒô expense_tracker_group.)
 GRANT CONNECT ON postgres;
 GRANT ALL PRIVILEGES ON SCHEMA training TO expense_tracker_group;
 GRANT expense_tracker_group TO expense_tracker_user;
