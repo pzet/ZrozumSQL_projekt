@@ -190,12 +190,12 @@ INSERT INTO expense_tracker.users (user_login, user_name, user_password, passwor
 INSERT INTO expense_tracker.bank_account_owner (owner_name, owner_desc, user_login, active)
 	 VALUES ('Piotrek Zawal', 'some description', 999, TRUE);
 
--- INSERT DO tabeli bank_account_types
+-- insert do tabeli bank_account_types
 
 INSERT INTO expense_tracker.bank_account_types (ba_type, ba_desc, active, is_common_account, id_ba_own)
      VALUES ('checking', 'Konto Osobiste', TRUE, FALSE, 1);
 	
--- INSERT DO tabeli transaction_bank_accounts
+-- insert do tabeli transaction_bank_accounts
 SELECT * FROM expense_tracker.transaction_bank_accounts;
 
 INSERT INTO expense_tracker.transaction_bank_accounts (id_ba_own, id_ba_type, bank_account_name, bank_account_desc, active)
@@ -205,11 +205,11 @@ INSERT INTO expense_tracker.transaction_bank_accounts (id_ba_own, id_ba_type, ba
 
 INSERT INTO expense_tracker.transaction_category (category_name, category_description, active)
 	 VALUES ('spożywcze', 'Żywność i artykuły pierwszej potrzeby', TRUE),
-			('subskrypcje', 'Kosmetyki, mydło etc.', TRUE);
+			('subskrypcje', 'Netflix, Spotify etc.', TRUE);
 
 -- insert do tabeli transaction_subcategory
-SELECT * FROM expense_tracker.transaction_category;
-TRUNCATE expense_tracker.transaction_category RESTART IDENTITY;
+
+
 INSERT INTO expense_tracker.transaction_subcategory (id_trans_cat, subcategory_name, subcategory_description, active)
      VALUES (1, 'Warzywa i owoce', 'Warzywa i owoce nieprzetworzone', TRUE),
         	(1, 'Pieczywo', 'Chleb, wypieki słodkie', TRUE),
@@ -217,11 +217,25 @@ INSERT INTO expense_tracker.transaction_subcategory (id_trans_cat, subcategory_n
        		(2, 'Netflix', 'Comiesięczna opłata za Netflix', TRUE),
        		(2, 'Spotify', 'Comiesięczna opłata za Spotify', TRUE);
        	
+-- insert do tabeli transaction_type
+
+INSERT INTO expense_tracker.transaction_type (transaction_type_name, transaction_type_desc, active)
+	 VALUES ('Przelew przychodzący', 'Wpływ na konto', TRUE),
+	 		('Przelew wychodzący', 'Wypływ środków z konta', TRUE),
+	 		('Karta debetowa', 'Płatność kartą debetową', TRUE),
+	 		('Karta kredytowa', 'Płatność kartą kredytową', TRUE);
+       	
 -- insert do tabeli transactions 
-SELECT * FROM expense_tracker.transaction_bank_accounts;
-SELECT * FROM expense_tracker.transactions;
-SELECT * FROM expense_tracker.transaction_category;
-SELECT * FROM expense_tracker.transaction_subcategory;
-INSERT INTO expense_tracker.transactions (id_trans_ba, id_trans_cat, id_trans_subcat, id_trans_type, id_user, transaction_date, transaction_value, transaction_description)
-values (2, 1, 1, 2, 1, '18/10/2020', 32.19, 'zakupy w Żabce'),
-	   (2, 2, 2, 1, 1, '23/10/2020', 24.99, 'Subskrypcja Spotify');
+
+--SELECT * FROM expense_tracker.transaction_bank_accounts;
+--SELECT * FROM expense_tracker.transactions;
+--SELECT * FROM expense_tracker.transaction_category;
+--SELECT * FROM expense_tracker.transaction_subcategory;
+TRUNCATE expense_tracker.transactions RESTART IDENTITY;
+
+INSERT INTO expense_tracker.transactions (id_trans_cat, id_trans_subcat, id_trans_type, id_user, transaction_date, transaction_value, transaction_description)
+     VALUES (1, 1, 3, 1, '18/10/2020', 32.19, 'zakupy w Żabce'),
+	        (2, 5, 4, 1, '23/10/2020', 24.99, 'Subskrypcja Spotify');
+
+--SQL Error [23503]: BŁĄD: wstawianie lub modyfikacja na tabeli "transactions" narusza klucz obcy "transaction_bank_accounts_fk"
+--  Szczegóły: Klucz (id_trans_ba)=(2) nie występuje w tabeli "transaction_bank_accounts".
