@@ -17,6 +17,7 @@ DROP SCHEMA IF EXISTS expense_tracker CASCADE;
 
 
 -- grupa expense_tracker_group
+
 REASSIGN OWNED BY expense_tracker_group TO postgres;
 DROP OWNED BY expense_tracker_group;
 DROP ROLE IF EXISTS expense_tracker_group;
@@ -39,12 +40,31 @@ GRANT ALL PRIVILEGES ON SCHEMA expense_tracker TO expense_tracker_group;
 
 GRANT expense_tracker_group TO expense_tracker_user;
 
+-- tabela users
+
+DROP TABLE IF EXISTS expense_tracker.users;
+
+CREATE TABLE IF NOT EXISTS expense_tracker.users (
+	id_user SERIAL PRIMARY KEY,
+	user_login VARCHAR(25) NOT NULL,
+	user_name VARCHAR(50) NOT NULL,
+	user_password VARCHAR(100) NOT NULL,
+	password_salt VARCHAR(100) NOT NULL,
+	transaction_type_desc VARCHAR(250),
+	active BOOLEAN NOT NULL DEFAULT TRUE,
+	insert_date TIMESTAMP DEFAULT current_timestamp,
+	update_date TIMESTAMP DEFAULT current_timestamp
+);
+
+
+
+
 -- tabela bank_account_owner
 
 DROP TABLE IF EXISTS expense_tracker.bank_account_owner;
 
 CREATE TABLE IF NOT EXISTS expense_tracker.bank_account_owner (
-	id_ba_own INT PRIMARY KEY,
+	id_ba_own SERIAL PRIMARY KEY,
 	owner_name VARCHAR(50) NOT NULL,
 	owner_desc VARCHAR(250),
 	user_login INT NOT NULL,
@@ -59,7 +79,7 @@ CREATE TABLE IF NOT EXISTS expense_tracker.bank_account_owner (
 DROP TABLE IF EXISTS expense_tracker.bank_account_types;
 
 CREATE TABLE IF NOT EXISTS expense_tracker.bank_account_types (
-	id_ba_type INT PRIMARY KEY,
+	id_ba_type SERIAL PRIMARY KEY,
 	ba_type VARCHAR(50) NOT NULL,
 	ba_desc VARCHAR(250),
 	active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -76,7 +96,7 @@ CREATE TABLE IF NOT EXISTS expense_tracker.bank_account_types (
 DROP TABLE IF EXISTS expense_tracker.transaction_bank_accounts;
 
 CREATE TABLE IF NOT EXISTS expense_tracker.transaction_bank_accounts (
-	id_trans_ba INT PRIMARY KEY,
+	id_trans_ba SERIAL PRIMARY KEY,
 	id_ba_own INT,
 	id_ba_type INT,
 	bank_account_name VARCHAR(50) NOT NULL,
@@ -94,7 +114,7 @@ CREATE TABLE IF NOT EXISTS expense_tracker.transaction_bank_accounts (
 DROP TABLE IF EXISTS expense_tracker.transaction_category;
 
 CREATE TABLE IF NOT EXISTS expense_tracker.transaction_category (
-	id_trans_cat INT PRIMARY KEY,
+	id_trans_cat SERIAL PRIMARY KEY,
 	category_name VARCHAR(50) NOT NULL,
 	category_description VARCHAR(250),
 	active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -108,7 +128,7 @@ CREATE TABLE IF NOT EXISTS expense_tracker.transaction_category (
 DROP TABLE IF EXISTS expense_tracker.transaction_subcategory;
 
 CREATE TABLE IF NOT EXISTS expense_tracker.transaction_subcategory (
-	id_trans_subcat INT PRIMARY KEY,
+	id_trans_subcat SERIAL PRIMARY KEY,
 	id_trans_cat INT,
 	subcategory_name VARCHAR(50) NOT NULL,
 	subcategory_description VARCHAR(250),
@@ -124,7 +144,7 @@ CREATE TABLE IF NOT EXISTS expense_tracker.transaction_subcategory (
 DROP TABLE IF EXISTS expense_tracker.transaction_type;
 
 CREATE TABLE IF NOT EXISTS expense_tracker.transaction_type (
-	id_trans_type INT PRIMARY KEY,
+	id_trans_type SERIAL PRIMARY KEY,
 	transaction_type_name VARCHAR(50) NOT NULL,
 	transaction_type_desc VARCHAR(250),
 	active BOOLEAN NOT NULL DEFAULT TRUE,
@@ -133,29 +153,13 @@ CREATE TABLE IF NOT EXISTS expense_tracker.transaction_type (
 );
 
 
--- tabela users
-
-DROP TABLE IF EXISTS expense_tracker.users;
-
-CREATE TABLE IF NOT EXISTS expense_tracker.users (
-	id_user INT PRIMARY KEY,
-	user_login VARCHAR(25) NOT NULL,
-	user_name VARCHAR(50) NOT NULL,
-	user_password VARCHAR(100) NOT NULL,
-	password_salt VARCHAR(100) NOT NULL,
-	transaction_type_desc VARCHAR(250),
-	active BOOLEAN NOT NULL DEFAULT TRUE,
-	insert_date TIMESTAMP DEFAULT current_timestamp,
-	update_date TIMESTAMP DEFAULT current_timestamp
-);
-
 
 -- tabela transactions
 
 DROP TABLE IF EXISTS expense_tracker.transactions;
 
 CREATE TABLE IF NOT EXISTS expense_tracker.transactions (
-	id_trans_ba INT PRIMARY KEY,
+	id_trans_ba SERIAL PRIMARY KEY,
 	id_trans_cat INT,
 	id_trans_subcat INT,
 	id_trans_type INT,
@@ -171,3 +175,53 @@ CREATE TABLE IF NOT EXISTS expense_tracker.transactions (
 	CONSTRAINT transaction_type_fk FOREIGN KEY (id_trans_type) REFERENCES expense_tracker.transaction_type(id_trans_type),
 	CONSTRAINT users_fk FOREIGN KEY (id_user) REFERENCES expense_tracker.users(id_user)
 );
+
+-- ######################
+-- MODUŁ 5
+-- ######################
+
+-- insert do tabeli users
+
+INSERT INTO expense_tracker.users (user_login, user_name, user_password, password_salt, transaction_type_desc, active)
+     VALUES ('jnowak', 'Jan Nowak', 'Wujek$knerus', concat(md5(random()::TEXT)), 'transaction description', true);
+
+-- insert do tabeli bank_account_owner
+     
+INSERT INTO expense_tracker.bank_account_owner (owner_name, owner_desc, user_login, active)
+	 VALUES ('Piotrek Zawal', 'some description', 999, TRUE);
+
+-- INSERT DO tabeli bank_account_types
+
+INSERT INTO expense_tracker.bank_account_types (ba_type, ba_desc, active, is_common_account, id_ba_own)
+     VALUES ('checking', 'Konto Osobiste', TRUE, FALSE, 1);
+	
+-- INSERT DO tabeli transaction_bank_accounts
+SELECT * FROM expense_tracker.transaction_bank_accounts;
+
+INSERT INTO expense_tracker.transaction_bank_accounts (id_ba_own, id_ba_type, bank_account_name, bank_account_desc, active)
+	 VALUES (1, 1, 'Konto Direct', 'Konto Osobiste ING', TRUE);
+    
+-- insert do tabeli transaction_category
+
+INSERT INTO expense_tracker.transaction_category (category_name, category_description, active)
+	 VALUES ('spożywcze', 'Żywność i artykuły pierwszej potrzeby', TRUE),
+			('subskrypcje', 'Kosmetyki, mydło etc.', TRUE);
+
+-- insert do tabeli transaction_subcategory
+SELECT * FROM expense_tracker.transaction_category;
+TRUNCATE expense_tracker.transaction_category RESTART IDENTITY;
+INSERT INTO expense_tracker.transaction_subcategory (id_trans_cat, subcategory_name, subcategory_description, active)
+     VALUES (1, 'Warzywa i owoce', 'Warzywa i owoce nieprzetworzone', TRUE),
+        	(1, 'Pieczywo', 'Chleb, wypieki słodkie', TRUE),
+       		(1, 'Napoje', 'Napoje bezalkoholowe (soki, słodzone)', TRUE),
+       		(2, 'Netflix', 'Comiesięczna opłata za Netflix', TRUE),
+       		(2, 'Spotify', 'Comiesięczna opłata za Spotify', TRUE);
+       	
+-- insert do tabeli transactions 
+SELECT * FROM expense_tracker.transaction_bank_accounts;
+SELECT * FROM expense_tracker.transactions;
+SELECT * FROM expense_tracker.transaction_category;
+SELECT * FROM expense_tracker.transaction_subcategory;
+INSERT INTO expense_tracker.transactions (id_trans_ba, id_trans_cat, id_trans_subcat, id_trans_type, id_user, transaction_date, transaction_value, transaction_description)
+values (2, 1, 1, 2, 1, '18/10/2020', 32.19, 'zakupy w Żabce'),
+	   (2, 2, 2, 1, 1, '23/10/2020', 24.99, 'Subskrypcja Spotify');
