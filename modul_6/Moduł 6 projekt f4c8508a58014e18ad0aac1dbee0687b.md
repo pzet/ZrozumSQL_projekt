@@ -2,7 +2,7 @@
 
 ![Modu%C5%82%206%20projekt%20f4c8508a58014e18ad0aac1dbee0687b/Untitled.png](Modu%C5%82%206%20projekt%20f4c8508a58014e18ad0aac1dbee0687b/Untitled.png)
 
-- nie wiem czy dobrze rozumiem przeznaczenie tej tabeli, ale czy **transaction_bank_accounts** jest taką "tabelą pośrednią", której celem jest przechowywanie info o typie konta i jego właścicielu? Jeśli tak, to czy atrybut *bank_account_desc* nie jest powieleniem tej samej informacji, którą przechowujemy w *ba_desc *****w tabeli **bank_account_types?**
+- nie wiem czy dobrze rozumiem przeznaczenie tej tabeli, ale czy **transaction_bank_accounts** jest taką "tabelą pośrednią", której celem jest przechowywanie info o typie konta i jego właścicielu? Jeśli tak, to czy atrybut *bank_account_desc* nie jest powieleniem tej samej informacji, którą przechowujemy w *ba_desc* **w tabeli **bank_account_types?**
 - czy tabela **users** i **bank_account_owner** nie powinny być bezpośrednio połączone jakąś relacją many-to-many (jedno konto może mieć kilkoro userów oraz jeden user wiele kont)? Atrybut *user_login* w tabeli **users** jest typu char, a w tabeli **bank_account_owner** typu int - przy łączeniu tabel trzeba ujednolicić typ tej zmiennej (a może i bez łączenia należy to zrobić?)
 - wydaje mi się, że tabele **transactions_subcategory** i **transaction_category** powinny być połączone relacją many-to-many tak, żeby
     - wiele różnych transakcji mogło należeć do tej samej kategorii i subkategorii,
