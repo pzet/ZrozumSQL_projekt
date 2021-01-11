@@ -49,7 +49,8 @@ LEFT JOIN expense_tracker.transaction_subcategory ts ON tc.id_trans_cat = ts.id_
        SELECT *
          FROM expense_tracker.transactions t
     LEFT JOIN expense_tracker.transaction_category tc ON t.id_trans_cat = tc.id_trans_cat 
-WHERE EXTRACT(YEAR FROM t.transaction_date) = 2016 AND category_name = 'JEDZENIE';
+        WHERE EXTRACT(YEAR FROM t.transaction_date) = 2016 
+	     AND category_name = 'JEDZENIE';
 
 -- 4. Dodaj nową podkategorię do tabeli TRANSACTION_SUBCATEGORY, która będzie w relacji
 --    z kategorią (TRANSACTION_CATEGORY) JEDZENIE.
@@ -58,16 +59,47 @@ WHERE EXTRACT(YEAR FROM t.transaction_date) = 2016 AND category_name = 'JEDZENIE
 --    Możesz wykorzystać dowolną znaną Ci konstrukcję (UPDATE / UPDATE + WITH /
 --    UPDATE + FROM / UPDATE + EXISTS).
 
-WITH tstemp AS 
+-- dodaj nową podkategorię do kategorii jedzenie
+INSERT INTO expense_tracker.transaction_subcategory (id_trans_cat, subcategory_name, subcategory_description)
+     SELECT expense_tracker.transaction_category.id_trans_cat, 'Nowa podkategoria', 'Nowa podkategoria'
+       FROM expense_tracker.transaction_category
+      WHERE category_name = 'JEDZENIE';
+     
+
+
+-- rozwiązanie z CTE
+WITH no_subcat AS 
 	(
-	       SELECT *
+	   SELECT *
          FROM expense_tracker.transactions t
     LEFT JOIN expense_tracker.transaction_category tc ON t.id_trans_cat = tc.id_trans_cat 
-WHERE EXTRACT(YEAR FROM t.transaction_date) = 2016 AND category_name = 'JEDZENIE';
-
+WHERE EXTRACT(YEAR FROM t.transaction_date) = 2016 
+          AND category_name = 'JEDZENIE'
+          AND id_trans_subcat = -1
 	)
-UPDATE tstemp
-SET tstemp.id_trans_subcat = 'aaa'
+UPDATE expense_tracker.transactions ts
+SET id_trans_subcat = (
+                      SELECT id_trans_subcat 
+ 					    FROM expense_tracker.transaction_subcategory
+ 					   WHERE subcategory_name = 'Nowa podkategoria'
+ 					   )
+WHERE EXISTS
+     (
+     SELECT *
+       FROM no_subcat
+      WHERE no_subcat.id_trans_subcat = ts.id_trans_subcat
+     );
+
+
+-- rozwiązanie bez CTE
+UPDATE expense_tracker.transactions tr
+   SET id_trans_subcat = (
+				         SELECT id_trans_subcat 
+ 					       FROM expense_tracker.transaction_subcategory
+ 					      WHERE subcategory_name = 'Nowa podkategoria'
+ 					     )
+ WHERE id_trans_subcat = -1;
+-- https://stackoverflow.com/questions/36908495/update-with-result-from-cte-postgresql
 
    
 -- 5. Wyświetl wszystkie transakcje w roku 2020 dla konta oszczędnościowego Janusz i
