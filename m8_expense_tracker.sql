@@ -1,7 +1,20 @@
 -- 1. Oblicz sumę transakcji w podziale na kategorie transakcji. W wyniku wyświetl nazwę
 --    kategorii i całkowitą sumę.
+
+   SELECT tc.category_name,
+          sum(t.transaction_value) total_expenses
+     FROM expense_tracker.transactions t 
+LEFT JOIN expense_tracker.transaction_category tc  ON tc.id_trans_cat = t.id_trans_cat
+ GROUP BY tc.category_name;
+
 -- 2. Oblicz sumę wydatków na Używki dokonana przez Janusza (Janusz Kowalski) z jego
 --    konta prywatnego (ROR - Janusz) w obecnym roku 2020.
+SELECT * FROM expense_tracker.transaction_category tc;
+
+SELECT *
+FROM expense_tracker.transactions t 
+LEFT JOIN expense_tracker.transaction_category tc ON tc.id_trans_cat = t.id_trans_cat
+                                                 WHERE tc.category_name = 'UŻYWKI';
 -- 3. Stwórz zapytanie, które będzie podsumowywać wydatki (typ transakcji: Obciążenie) na
 --    wspólnym koncie RoR - Janusza i Grażynki w taki sposób, aby widoczny był podział
 --    sumy wydatków, ze względu na rok, rok i kwartał (format: 2019_1), rok i miesiąc (format:
