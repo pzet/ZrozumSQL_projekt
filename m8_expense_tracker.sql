@@ -46,3 +46,33 @@ LEFT JOIN expense_tracker.transaction_type tt ON tt.id_trans_type = t.id_trans_t
 --    od roku 2015 wzwyż. Do wyników (rok, suma wydatków) dodaj korzystając z funkcji
 --    okna atrybut, który będzie różnicą pomiędzy danym rokiem a poprzednim (balans rok
 --    do roku).
+     
+SELECT * FROM expense_tracker.bank_account_owner bao; -- id_ba_own = 3
+SELECT * FROM expense_tracker.transaction_bank_accounts tba WHERE id_ba_own = 3 AND id_ba_typ = 5;
+-- poprawiona wersja zapytania powyżej:
+SELECT * 
+FROM expense_tracker.transaction_bank_accounts tba 
+JOIN (
+      SELECT *
+        FROM expense_tracker.bank_account_owner bao 
+       WHERE bao.owner_name = 'Janusz i Grażynka'
+      ) jg ON tba.id_ba_own = jg.id_ba_own
+JOIN (
+      SELECT *
+        FROM expense_tracker.bank_account_types bat 
+       WHERE bat.ba_type = 'ROR - WSPÓLNY'
+     ) jg_ror ON tba.id_ba_typ = jg_ror.id_ba_type;
+    
+SELECT * FROM expense_tracker.transactions t;
+SELECT * FROM expense_tracker.transaction_type tt WHERE transaction_type_name LIKE '%bciążenie%';
+
+SELECT EXTRACT (YEAR FROM t.transaction_date) transaction_year,
+       sum(t.transaction_value) yearly_transaction_value
+  FROM expense_tracker.transactions t
+  JOIN (SELECT * 
+          FROM expense_tracker.transaction_bank_accounts tba 
+         WHERE id_ba_own = 3 AND id_ba_typ = 5) sub1 ON t.id_trans_ba = sub1.id_trans_ba
+  JOIN (SELECT * 
+           FROM expense_tracker.transaction_type tt WHERE tt.transaction_type_name LIKE '%bciążenie%') sub2 ON t.id_trans_type = sub2.id_trans_type
+WHERE EXTRACT (YEAR FROM t.transaction_date) >= 2015
+GROUP BY transaction_year;
