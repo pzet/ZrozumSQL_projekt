@@ -9,22 +9,22 @@ LEFT JOIN expense_tracker.transaction_category tc  ON tc.id_trans_cat = t.id_tra
 
 -- 2. Oblicz sumę wydatków na Używki dokonana przez Janusza (Janusz Kowalski) z jego
 --    konta prywatnego (ROR - Janusz) w obecnym roku 2020.
-WITH uzywki_exp AS (
-                       SELECT *
-                         FROM expense_tracker.transactions t 
-                    LEFT JOIN expense_tracker.transaction_category tc ON tc.id_trans_cat = t.id_trans_cat
-                        WHERE tc.category_name = 'UŻYWKI' AND EXTRACT(YEAR FROM t.transaction_date) = 2020 
-                   ),
-     janusz_ror AS (
-                    SELECT * 
-                      FROM expense_tracker.bank_account_types bat 
-                      JOIN expense_tracker.users u ON u.id_user = bat.id_ba_own
-                                                  AND u.user_name = 'Janusz Kowalski'
-                                                  AND bat.ba_type = 'ROR'
-                   )
-SELECT sum(ue.transaction_value)
-FROM uzywki_exp ue
-JOIN janusz_ror ON janusz_ror.id_ba_type = ue.id_trans_ba;
+  WITH uzywki_exp AS (
+                         SELECT *
+                           FROM expense_tracker.transactions t 
+                      LEFT JOIN expense_tracker.transaction_category tc ON tc.id_trans_cat = t.id_trans_cat
+                          WHERE tc.category_name = 'UŻYWKI' AND EXTRACT(YEAR FROM t.transaction_date) = 2020 
+                     ),
+       janusz_ror AS (
+                      SELECT * 
+                        FROM expense_tracker.bank_account_types bat 
+                        JOIN expense_tracker.users u ON u.id_user = bat.id_ba_own
+                                                    AND u.user_name = 'Janusz Kowalski'
+                                                    AND bat.ba_type = 'ROR'
+                     )
+SELECT sum(ue.transaction_value) sum_ROR_exp_2020
+  FROM uzywki_exp ue
+  JOIN janusz_ror ON janusz_ror.id_ba_type = ue.id_trans_ba;
 
 -- 3. Stwórz zapytanie, które będzie podsumowywać wydatki (typ transakcji: Obciążenie) na
 --    wspólnym koncie RoR - Janusza i Grażynki w taki sposób, aby widoczny był podział
@@ -46,25 +46,26 @@ LEFT JOIN expense_tracker.transaction_type tt ON tt.id_trans_type = t.id_trans_t
 --    od roku 2015 wzwyż. Do wyników (rok, suma wydatków) dodaj korzystając z funkcji
 --    okna atrybut, który będzie różnicą pomiędzy danym rokiem a poprzednim (balans rok
 --    do roku).
-     
-SELECT * FROM expense_tracker.bank_account_owner bao; -- id_ba_own = 3
-SELECT * FROM expense_tracker.transaction_bank_accounts tba WHERE id_ba_own = 3 AND id_ba_typ = 5;
--- poprawiona wersja zapytania powyżej:
-SELECT * 
-FROM expense_tracker.transaction_bank_accounts tba 
-JOIN (
-      SELECT *
-        FROM expense_tracker.bank_account_owner bao 
-       WHERE bao.owner_name = 'Janusz i Grażynka'
-      ) jg ON tba.id_ba_own = jg.id_ba_own
-JOIN (
-      SELECT *
-        FROM expense_tracker.bank_account_types bat 
-       WHERE bat.ba_type = 'ROR - WSPÓLNY'
-     ) jg_ror ON tba.id_ba_typ = jg_ror.id_ba_type;
     
-SELECT * FROM expense_tracker.transactions t;
-SELECT * FROM expense_tracker.transaction_type tt WHERE transaction_type_name LIKE '%bciążenie%';
+
+-- dwa równoważne do wybrania typu rachunku ROR z właścicielem Janusz i GRażynka:
+ SELECT * FROM expense_tracker.transaction_bank_accounts tba WHERE id_ba_own = 3 AND id_ba_typ = 5;
+-- bardziej generyczna wersja:
+SELECT * 
+  FROM expense_tracker.transaction_bank_accounts tba 
+  JOIN (
+        SELECT *
+          FROM expense_tracker.bank_account_owner bao 
+         WHERE bao.owner_name = 'Janusz i Grażynka'
+       ) jg ON tba.id_ba_own = jg.id_ba_own
+  JOIN (
+        SELECT *
+          FROM expense_tracker.bank_account_types bat 
+         WHERE bat.ba_type = 'ROR - WSPÓLNY'
+       ) jg_ror ON tba.id_ba_typ = jg_ror.id_ba_type;
+
+    
+-- pierwsza wersja zapytania:
 
 SELECT EXTRACT (YEAR FROM t.transaction_date) transaction_year,
        sum(t.transaction_value) yearly_transaction_value
@@ -76,3 +77,31 @@ SELECT EXTRACT (YEAR FROM t.transaction_date) transaction_year,
            FROM expense_tracker.transaction_type tt WHERE tt.transaction_type_name LIKE '%bciążenie%') sub2 ON t.id_trans_type = sub2.id_trans_type
 WHERE EXTRACT (YEAR FROM t.transaction_date) >= 2015
 GROUP BY transaction_year;
+
+-- druga wersja zapytania:
+WITH sub1 
+AS
+-- wybierz typ rachunku ROR i właściciela Janusz i Grażynka
+(
+SELECT * 
+  FROM expense_tracker.transaction_bank_accounts tba 
+  JOIN (SELECT *
+          FROM expense_tracker.bank_account_owner bao 
+         WHERE bao.owner_name = 'Janusz i Grażynka') jg ON tba.id_ba_own = jg.id_ba_own
+  JOIN (SELECT *
+          FROM expense_tracker.bank_account_types bat 
+         WHERE bat.ba_type = 'ROR - WSPÓLNY') jg_ror ON tba.id_ba_typ = jg_ror.id_ba_type
+)
+SELECT EXTRACT (YEAR FROM t.transaction_date) transaction_year,
+        sum(t.transaction_value) yearly_transaction_value
+    FROM expense_tracker.transactions t
+    JOIN sub1 ON t.id_trans_ba = sub1.id_trans_ba
+    JOIN (SELECT * 
+            FROM expense_tracker.transaction_type tt 
+           WHERE tt.transaction_type_name LIKE '%bciążenie%') sub2 ON t.id_trans_type = sub2.id_trans_type
+           WHERE EXTRACT (YEAR FROM t.transaction_date) >= 2015
+GROUP BY transaction_year;
+
+-- Wydawało mi się, że oba powyższe zapytania powinny zwrócić identyczny wynik, ale po wykonaniu
+-- tabele różnią się dwoma wierszami - suma transakcji dla lat 2018 i 2019 zamieniają się miejscami.
+-- Nie umiem znaleźć co tu jest nie tak - będę bardzo wdzięczny za wskazówki :)
