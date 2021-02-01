@@ -10,11 +10,13 @@ LEFT JOIN expense_tracker.transaction_category tc  ON tc.id_trans_cat = t.id_tra
 -- 2. Oblicz sumę wydatków na Używki dokonana przez Janusza (Janusz Kowalski) z jego
 --    konta prywatnego (ROR - Janusz) w obecnym roku 2020.
   WITH uzywki_exp AS (
+-- wybierz transakcje z kategorii używki z roku 2020
                          SELECT *
                            FROM expense_tracker.transactions t 
                       LEFT JOIN expense_tracker.transaction_category tc ON tc.id_trans_cat = t.id_trans_cat
                           WHERE tc.category_name = 'UŻYWKI' AND EXTRACT(YEAR FROM t.transaction_date) = 2020 
                      ),
+-- wybierz konto typu ROR i właścicielem Janusz
        janusz_ror AS (
                       SELECT * 
                         FROM expense_tracker.bank_account_types bat 
@@ -32,14 +34,26 @@ SELECT sum(ue.transaction_value) sum_ROR_exp_2020
 --    2019_12) w roku 2019. Skorzystaj z funkcji ROLLUP.
 
 SELECT * FROM expense_tracker.transactions;
-SELECT * FROM expense_tracker.bank_account_owner bao;
+SELECT * FROM expense_tracker.bank_account_types bat
+-- https://www.sqlpedia.pl/wielokrotne-grupowanie-grouping-sets-rollup-cube/
 
-   SELECT sum(t.transaction_value)
+   SELECT EXTRACT(YEAR FROM t.transaction_date) yr,
+          EXTRACT(YEAR FROM t.transaction_date) || '_' || EXTRACT(QUARTER FROM t.transaction_date) yr_qtr,
+          EXTRACT(YEAR FROM t.transaction_date) || '_' || EXTRACT(MONTH FROM t.transaction_date) yr_mnth,
+          sum(t.transaction_value)
+--          GROUPING(EXTRACT(YEAR FROM t.transaction_date),
+--          EXTRACT(YEAR FROM t.transaction_date) || '_' || EXTRACT(QUARTER FROM t.transaction_date),
+--          EXTRACT(YEAR FROM t.transaction_date) || '_' || EXTRACT(MONTH FROM t.transaction_date))
      FROM expense_tracker.transactions t 
-     JOIN expense_tracker.bank_account_types bat ON bat.id_ba_type = t.id_trans_ba
+LEFT JOIN expense_tracker.bank_account_types bat ON bat.id_ba_type = t.id_trans_ba
 LEFT JOIN expense_tracker.transaction_type tt ON tt.id_trans_type = t.id_trans_type
     WHERE tt.transaction_type_name = 'Obciążenie'
-      AND bat.id_ba_type = 6; -- jak zastapic to dodatkowym joinem?
+      AND bat.id_ba_type = 5
+      AND EXTRACT(YEAR FROM t.transaction_date) = 2019
+      GROUP BY ROLLUP (EXTRACT(YEAR FROM t.transaction_date), 
+                       EXTRACT(MONTH FROM t.transaction_date),
+                       EXTRACT(QUARTER FROM t.transaction_date))
+                      ORDER BY (2, 3); 
 
 -- 4. Stwórz zapytanie podsumowujące sumę wydatków na koncie wspólnym Janusza i
 --    Grażynki (ROR- Wspólny), wydatki (typ: Obciążenie), w podziale na poszczególne lata
