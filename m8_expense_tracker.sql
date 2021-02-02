@@ -9,21 +9,27 @@ LEFT JOIN expense_tracker.transaction_category tc  ON tc.id_trans_cat = t.id_tra
 
 -- 2. Oblicz sumę wydatków na Używki dokonana przez Janusza (Janusz Kowalski) z jego
 --    konta prywatnego (ROR - Janusz) w obecnym roku 2020.
-  WITH uzywki_exp AS (
+
+
+WITH uzywki_exp 
+AS 
+(
 -- wybierz transakcje z kategorii używki z roku 2020
-                         SELECT *
-                           FROM expense_tracker.transactions t 
-                      LEFT JOIN expense_tracker.transaction_category tc ON tc.id_trans_cat = t.id_trans_cat
-                          WHERE tc.category_name = 'UŻYWKI' AND EXTRACT(YEAR FROM t.transaction_date) = 2020 
-                     ),
+   SELECT *
+     FROM expense_tracker.transactions t 
+LEFT JOIN expense_tracker.transaction_category tc ON tc.id_trans_cat = t.id_trans_cat
+    WHERE tc.category_name = 'UŻYWKI' AND EXTRACT(YEAR FROM t.transaction_date) = 2020 
+),
 -- wybierz konto typu ROR i właścicielem Janusz
-       janusz_ror AS (
-                      SELECT * 
-                        FROM expense_tracker.bank_account_types bat 
-                        JOIN expense_tracker.users u ON u.id_user = bat.id_ba_own
-                                                    AND u.user_name = 'Janusz Kowalski'
-                                                    AND bat.ba_type = 'ROR'
-                     )
+janusz_ror 
+AS 
+(
+SELECT * 
+  FROM expense_tracker.bank_account_types bat 
+  JOIN expense_tracker.users u ON u.id_user = bat.id_ba_own
+                              AND u.user_name = 'Janusz Kowalski'
+                              AND bat.ba_type = 'ROR'
+)
 SELECT sum(ue.transaction_value) sum_ROR_exp_2020
   FROM uzywki_exp ue
   JOIN janusz_ror ON janusz_ror.id_ba_type = ue.id_trans_ba;
@@ -33,17 +39,17 @@ SELECT sum(ue.transaction_value) sum_ROR_exp_2020
 --    sumy wydatków, ze względu na rok, rok i kwartał (format: 2019_1), rok i miesiąc (format:
 --    2019_12) w roku 2019. Skorzystaj z funkcji ROLLUP.
 
-SELECT * FROM expense_tracker.transactions;
-SELECT * FROM expense_tracker.bank_account_types bat
+--SELECT * FROM expense_tracker.transactions;
+--SELECT * FROM expense_tracker.bank_account_types bat
 -- https://www.sqlpedia.pl/wielokrotne-grupowanie-grouping-sets-rollup-cube/
 
    SELECT EXTRACT(YEAR FROM t.transaction_date) yr,
           EXTRACT(YEAR FROM t.transaction_date) || '_' || EXTRACT(QUARTER FROM t.transaction_date) yr_qtr,
           EXTRACT(YEAR FROM t.transaction_date) || '_' || EXTRACT(MONTH FROM t.transaction_date) yr_mnth,
-          sum(t.transaction_value)
---          GROUPING(EXTRACT(YEAR FROM t.transaction_date),
---          EXTRACT(YEAR FROM t.transaction_date) || '_' || EXTRACT(QUARTER FROM t.transaction_date),
---          EXTRACT(YEAR FROM t.transaction_date) || '_' || EXTRACT(MONTH FROM t.transaction_date))
+          sum(t.transaction_value),
+          GROUPING(EXTRACT(YEAR FROM t.transaction_date),
+                   EXTRACT(QUARTER FROM t.transaction_date),
+                   EXTRACT(MONTH FROM t.transaction_date))
      FROM expense_tracker.transactions t 
 LEFT JOIN expense_tracker.bank_account_types bat ON bat.id_ba_type = t.id_trans_ba
 LEFT JOIN expense_tracker.transaction_type tt ON tt.id_trans_type = t.id_trans_type
@@ -60,25 +66,7 @@ LEFT JOIN expense_tracker.transaction_type tt ON tt.id_trans_type = t.id_trans_t
 --    od roku 2015 wzwyż. Do wyników (rok, suma wydatków) dodaj korzystając z funkcji
 --    okna atrybut, który będzie różnicą pomiędzy danym rokiem a poprzednim (balans rok
 --    do roku).
-    
-
--- dwa równoważne do wybrania typu rachunku ROR z właścicielem Janusz i GRażynka:
- SELECT * FROM expense_tracker.transaction_bank_accounts tba WHERE id_ba_own = 3 AND id_ba_typ = 5;
--- bardziej generyczna wersja:
-SELECT * 
-  FROM expense_tracker.transaction_bank_accounts tba 
-  JOIN (
-        SELECT *
-          FROM expense_tracker.bank_account_owner bao 
-         WHERE bao.owner_name = 'Janusz i Grażynka'
-       ) jg ON tba.id_ba_own = jg.id_ba_own
-  JOIN (
-        SELECT *
-          FROM expense_tracker.bank_account_types bat 
-         WHERE bat.ba_type = 'ROR - WSPÓLNY'
-       ) jg_ror ON tba.id_ba_typ = jg_ror.id_ba_type;
-
-    
+       
 -- pierwsza wersja zapytania:
 
 SELECT EXTRACT (YEAR FROM t.transaction_date) transaction_year,
@@ -92,7 +80,7 @@ SELECT EXTRACT (YEAR FROM t.transaction_date) transaction_year,
 WHERE EXTRACT (YEAR FROM t.transaction_date) >= 2015
 GROUP BY transaction_year;
 
--- druga wersja zapytania:
+-- druga wersja zapytania z CTE:
 WITH sub1 
 AS
 -- wybierz typ rachunku ROR i właściciela Janusz i Grażynka
@@ -107,7 +95,7 @@ SELECT *
          WHERE bat.ba_type = 'ROR - WSPÓLNY') jg_ror ON tba.id_ba_typ = jg_ror.id_ba_type
 )
 SELECT EXTRACT (YEAR FROM t.transaction_date) transaction_year,
-        sum(t.transaction_value) yearly_transaction_value
+       sum(t.transaction_value) yearly_transaction_value
     FROM expense_tracker.transactions t
     JOIN sub1 ON t.id_trans_ba = sub1.id_trans_ba
     JOIN (SELECT * 
