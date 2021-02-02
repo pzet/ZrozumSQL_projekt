@@ -42,24 +42,24 @@ SELECT sum(ue.transaction_value) sum_ROR_exp_2020
 --SELECT * FROM expense_tracker.transactions;
 --SELECT * FROM expense_tracker.bank_account_types bat
 -- https://www.sqlpedia.pl/wielokrotne-grupowanie-grouping-sets-rollup-cube/
-
+           
    SELECT EXTRACT(YEAR FROM t.transaction_date) yr,
           EXTRACT(YEAR FROM t.transaction_date) || '_' || EXTRACT(QUARTER FROM t.transaction_date) yr_qtr,
           EXTRACT(YEAR FROM t.transaction_date) || '_' || EXTRACT(MONTH FROM t.transaction_date) yr_mnth,
           sum(t.transaction_value),
-          GROUPING(EXTRACT(YEAR FROM t.transaction_date),
-                   EXTRACT(QUARTER FROM t.transaction_date),
-                   EXTRACT(MONTH FROM t.transaction_date))
+          GROUPING(EXTRACT(YEAR FROM t.transaction_date)) grupowanie_po_roku,
+          GROUPING(EXTRACT(YEAR FROM t.transaction_date) || '_' || EXTRACT(QUARTER FROM t.transaction_date)) grupowanie_po_kwartale,
+          GROUPING(EXTRACT(YEAR FROM t.transaction_date) || '_' || EXTRACT(MONTH FROM t.transaction_date)) grupowanie_po_miesiacu
      FROM expense_tracker.transactions t 
 LEFT JOIN expense_tracker.bank_account_types bat ON bat.id_ba_type = t.id_trans_ba
 LEFT JOIN expense_tracker.transaction_type tt ON tt.id_trans_type = t.id_trans_type
     WHERE tt.transaction_type_name = 'Obciążenie'
       AND bat.id_ba_type = 5
       AND EXTRACT(YEAR FROM t.transaction_date) = 2019
-      GROUP BY ROLLUP (EXTRACT(YEAR FROM t.transaction_date), 
-                       EXTRACT(MONTH FROM t.transaction_date),
-                       EXTRACT(QUARTER FROM t.transaction_date))
-                      ORDER BY (2, 3); 
+      GROUP BY ROLLUP (yr, 
+                       yr_qtr,
+                       yr_mnth)
+                      ORDER BY (2, 3);
 
 -- 4. Stwórz zapytanie podsumowujące sumę wydatków na koncie wspólnym Janusza i
 --    Grażynki (ROR- Wspólny), wydatki (typ: Obciążenie), w podziale na poszczególne lata
