@@ -70,7 +70,8 @@ LEFT JOIN expense_tracker.transaction_type tt ON tt.id_trans_type = t.id_trans_t
 -- pierwsza wersja zapytania:
 
 SELECT EXTRACT (YEAR FROM t.transaction_date) transaction_year,
-       sum(t.transaction_value) yearly_transaction_value
+       sum(t.transaction_value) yearly_transaction_value,
+       sum(t.transaction_value) - lag(sum(t.transaction_value)) OVER (ORDER BY EXTRACT (YEAR FROM t.transaction_date)) balance_yr_by_yr
   FROM expense_tracker.transactions t
   JOIN (SELECT * 
           FROM expense_tracker.transaction_bank_accounts tba 
@@ -104,6 +105,22 @@ SELECT EXTRACT (YEAR FROM t.transaction_date) transaction_year,
            WHERE EXTRACT (YEAR FROM t.transaction_date) >= 2015
 GROUP BY transaction_year;
 
--- Wydawało mi się, że oba powyższe zapytania powinny zwrócić identyczny wynik, ale po wykonaniu
--- tabele różnią się dwoma wierszami - suma transakcji dla lat 2018 i 2019 zamieniają się miejscami.
--- Nie umiem znaleźć co tu jest nie tak - będę bardzo wdzięczny za wskazówki :)
+
+
+-- 5. Korzystając z funkcji LAST_VALUE pokaż różnicę w dniach, pomiędzy kolejnymi
+--    transakcjami (Obciążenie) na prywatnym koncie Janusza (RoR) dla podkategorii
+--    Technologie w 1 kwartale roku 2020.
+
+SELECT t.id_transaction,
+	 t.transaction_date,
+	 t.transaction_date  - last_value(t.transaction_date) 
+	 					   		OVER (ORDER BY t.transaction_date ASC
+	 			                      GROUPS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING) AS days_from_prev_purchase
+  FROM expense_tracker.transactions t
+  JOIN expense_tracker.transaction_bank_accounts tba ON tba.id_trans_ba = t.id_trans_ba
+  JOIN expense_tracker.transaction_type tt ON tt.id_trans_type = t.id_trans_type
+  JOIN expense_tracker.transaction_subcategory ts ON ts.id_trans_subcat = t.id_trans_subcat
+ WHERE tba.bank_account_name = 'ROR - Janusz'
+ 	-- AND t.transaction_date BETWEEN '2020-01-01' AND '2020-03-31' - w tym kwartale mam tylko 1 rekord, dlatego wziąłem dane dla całego zakresu
+ 	AND ts.subcategory_description = 'Technologie'
+ 	
