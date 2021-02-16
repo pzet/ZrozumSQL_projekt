@@ -124,3 +124,8 @@ SELECT t.id_transaction,
  	-- AND t.transaction_date BETWEEN '2020-01-01' AND '2020-03-31' - w tym kwartale mam tylko 1 rekord, dlatego wziąłem dane dla całego zakresu
  	AND ts.subcategory_description = 'Technologie'
  	
+-- mam wrażenie, że coś przekombinowałem w tym rozwiązaniu :)
+-- czy za pomocą last_value() da się zrobić tak, aby dla kolejnych transakcji wykonanych w danym dniu
+-- pokazywał 0 (np. obecnie dla 2015-12-19 mam 4 transakcje i każda z nich pokazuje 11 dni od poprzedniej.
+-- Jak rozwiązać to tak, aby pierwsza transakcja w 2015-12-19 pokazywała 11 dni, a trzy kolejne transakcje 0 dni?
+ 	
