@@ -163,8 +163,31 @@ SELECT t.id_transaction,
   												 AND ts.subcategory_description = 'Technologie';
  	--WHERE t.transaction_date BETWEEN '2020-01-01' AND '2020-03-31' - w tym kwartale mam tylko 1 rekord, dlatego wziąłem dane dla całego zakresu
 
--- mam wrażenie, że coś przekombinowałem w tym rozwiązaniu :)
--- czy za pomocą last_value() da się zrobić tak, aby dla kolejnych transakcji wykonanych w danym dniu
--- pokazywał 0 (np. obecnie dla 2015-12-19 mam 4 transakcje i każda z nich pokazuje 11 dni od poprzedniej.
--- Jak rozwiązać to tak, aby pierwsza transakcja w 2015-12-19 pokazywała 11 dni, a trzy kolejne transakcje 0 dni?
+-- poprawione rozwiązanie:
+SELECT t.id_transaction,
+		  t.transaction_date,
+		  LAST_VALUE(t.transaction_date) OVER (ORDER BY t.transaction_date GROUPS BETWEEN CURRENT ROW 
+   																					  AND 1 FOLLOWING) AS next_technology_transaction,		  
+		  LAST_VALUE(t.transaction_date) OVER (ORDER BY t.transaction_date GROUPS BETWEEN CURRENT ROW 
+   																					  AND 1 FOLLOWING)
+			-
+			 t.transaction_date AS days_since_previous_tech_purchase,
+		  t.transaction_value,		  
+		  t.transaction_description
+     FROM expense_tracker.transactions t 
+     JOIN expense_tracker.transaction_category tc ON tc.id_trans_cat = t.id_trans_cat
+     JOIN expense_tracker.transaction_subcategory ts ON ts.id_trans_cat = tc.id_trans_cat 
+	 												AND ts.id_trans_subcat = t.id_trans_subcat 
+     												AND ts.subcategory_name = 'Technologie'
+ 	 JOIN expense_tracker.transaction_bank_accounts tba ON tba.id_trans_ba = t.id_trans_ba 	 
+ 	 JOIN expense_tracker.bank_account_owner bao ON bao.id_ba_own = tba.id_ba_own 
+	 JOIN expense_tracker.bank_account_types bat ON bat.id_ba_type = tba.id_ba_typ 
+	 										    AND bat.id_ba_own = bao.id_ba_own 
+	 										    AND bat.ba_type = 'ROR'
+	 JOIN expense_tracker.transaction_type tt ON tt.id_trans_type = t.id_trans_type 
+	 										 AND tt.transaction_type_name = 'Obciążenie'
+ 	 JOIN expense_tracker.users u ON u.id_user = bao.user_login 
+	 						     AND u.user_login = 'jkowalski'	 										 
+    WHERE extract(YEAR FROM t.transaction_date) = 2020	
+      AND extract(quarter FROM t.transaction_date) = 1
  	
