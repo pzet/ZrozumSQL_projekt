@@ -90,6 +90,14 @@ SELECT *
 --    unikatowych (DISTINCT) podkategorii razem z sumą transakcji dla grup rok transakcji,
 --    typ transakcji, nazwę kategorii.
 
+  SELECT transaction_year,
+	     transaction_type_name,
+	     category_name,
+	     array_agg(DISTINCT subcategory_name),
+	     sum(transaction_value)
+    FROM expense_tracker.transactions_janusz_grazyna
+GROUP BY transaction_year, transaction_type_name, category_name
+
 -- 3. Dodaj do schematu nową tabelę MONTHLY_BUDGET_PLANNED o atrybutach
 --    - YEAR_MONTH VARCHAR(7) PRIMARY_KEY,
 --    - BUDGET_PLANNED NUMERIC(10,2)
