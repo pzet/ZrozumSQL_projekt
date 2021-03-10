@@ -8,6 +8,83 @@
 --    konta. W widokach wyświetl informacje o nazwie kategorii, nazwie podkategorii, typie
 --    transakcji, dacie transakcji, roku z daty transakcji, wartości transakcji i type konta.
 
+
+-- transakcje Grazyny Kowalskiej
+CREATE OR REPLACE VIEW expense_tracker.transactions_Grazyna_Kowalska AS 
+   SELECT t.id_transaction,
+   		  bao.owner_name,
+	      tc.category_name,
+	      ts.subcategory_name,
+	      tt.transaction_type_name,
+	      t.transaction_date,
+	      EXTRACT(YEAR FROM t.transaction_date) AS transaction_year,
+	      t.transaction_value,
+	      bat.ba_type
+     FROM expense_tracker.transactions t 
+LEFT JOIN expense_tracker.transaction_bank_accounts tba ON tba.id_trans_ba = t.id_trans_ba 
+LEFT JOIN expense_tracker.bank_account_owner bao ON bao.id_ba_own = tba.id_ba_own 
+LEFT JOIN expense_tracker.transaction_category tc ON tc.id_trans_cat = t.id_trans_cat 
+LEFT JOIN expense_tracker.transaction_subcategory ts ON ts.id_trans_subcat =t.id_trans_subcat 
+LEFT JOIN expense_tracker.transaction_type tt ON tt.id_trans_type = t.id_trans_type
+LEFT JOIN expense_tracker.bank_account_types bat ON tba.id_ba_typ = bat.id_ba_type
+    WHERE owner_name = 'Grażyna Kowalska';   
+
+-- transakcje Janusza Kowalskiego
+CREATE OR REPLACE VIEW expense_tracker.transactions_Janusz_Kowalski AS 
+   SELECT t.id_transaction,
+   		  bao.owner_name,
+	      tc.category_name,
+	      ts.subcategory_name,
+	      tt.transaction_type_name,
+	      t.transaction_date,
+	      EXTRACT(YEAR FROM t.transaction_date) AS transaction_year,
+	      t.transaction_value,
+	      bat.ba_type
+     FROM expense_tracker.transactions t 
+LEFT JOIN expense_tracker.transaction_bank_accounts tba ON tba.id_trans_ba = t.id_trans_ba 
+LEFT JOIN expense_tracker.bank_account_owner bao ON bao.id_ba_own = tba.id_ba_own 
+LEFT JOIN expense_tracker.transaction_category tc ON tc.id_trans_cat = t.id_trans_cat 
+LEFT JOIN expense_tracker.transaction_subcategory ts ON ts.id_trans_subcat =t.id_trans_subcat 
+LEFT JOIN expense_tracker.transaction_type tt ON tt.id_trans_type = t.id_trans_type
+LEFT JOIN expense_tracker.bank_account_types bat ON tba.id_ba_typ = bat.id_ba_type
+    WHERE owner_name = 'Janusz Kowalski';
+   
+-- transakcje Janusza i Grażyny Kowalskich   
+CREATE OR REPLACE VIEW expense_tracker.transactions_Janusz_Grazyna AS 
+   SELECT t.id_transaction,
+   		  bao.owner_name,
+	      tc.category_name,
+	      ts.subcategory_name,
+	      tt.transaction_type_name,
+	      t.transaction_date,
+	      EXTRACT(YEAR FROM t.transaction_date) AS transaction_year,
+	      t.transaction_value,
+	      bat.ba_type
+     FROM expense_tracker.transactions t 
+LEFT JOIN expense_tracker.transaction_bank_accounts tba ON tba.id_trans_ba = t.id_trans_ba 
+LEFT JOIN expense_tracker.bank_account_owner bao ON bao.id_ba_own = tba.id_ba_own 
+LEFT JOIN expense_tracker.transaction_category tc ON tc.id_trans_cat = t.id_trans_cat 
+LEFT JOIN expense_tracker.transaction_subcategory ts ON ts.id_trans_subcat =t.id_trans_subcat 
+LEFT JOIN expense_tracker.transaction_type tt ON tt.id_trans_type = t.id_trans_type
+LEFT JOIN expense_tracker.bank_account_types bat ON tba.id_ba_typ = bat.id_ba_type
+    WHERE owner_name = 'Janusz i Grażynka';
+   
+-- sprawdzenie, czy widoki istnieja w schemacie
+SELECT *
+  FROM information_schema."views" v 
+ WHERE table_schema = 'expense_tracker'
+
+-- sprawdzenie działania widoków
+SELECT * 
+  FROM expense_tracker.transactions_grazyna_kowalska;
+
+SELECT *
+  FROM expense_tracker.transactions_janusz_kowalski;
+
+SELECT * 
+  FROM expense_tracker.transactions_janusz_grazyna;
+ 
+ 
 -- 2. Korzystając z widoku konta dla Janusza i Grażynki z zadania 1 przygotuj zapytanie, w
 --    którym wyświetlisz, rok transakcji, typ transakcji, nazwę kategorii, zgrupowaną listę
 --    unikatowych (DISTINCT) podkategorii razem z sumą transakcji dla grup rok transakcji,
