@@ -10,8 +10,7 @@
 
 
 -- transakcje Grazyny Kowalskiej
-CREATE OR REPLACE VIEW expense_tracker.transactions_Grazyna_Kowalska AS 
-   SELECT t.id_transaction,
+SELECT t.id_transaction,
    		  bao.owner_name,
 	      tc.category_name,
 	      ts.subcategory_name,
@@ -128,12 +127,6 @@ WHERE table_schema = 'expense_tracker'
 	AND table_name = 'transactions';
 
 	
-SELECT DISTINCT concat(EXTRACT(YEAR FROM transaction_date),  '_', EXTRACT(MONTH FROM transaction_date))::TEXT
-FROM expense_tracker.transactions t;
-
-SELECT mbp.year_month
-FROM expense_tracker.monthly_budget_planned mbp
-
 CREATE OR REPLACE FUNCTION expense_tracker.monthly_budget_planned_function() 
 	RETURNS TRIGGER 
 	LANGUAGE plpgsql
