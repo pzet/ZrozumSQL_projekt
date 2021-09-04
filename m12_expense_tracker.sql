@@ -107,6 +107,9 @@ CREATE ROLE user_2 WITH login PASSWORD 'user_2_pwd';
 GRANT user_1 TO expense_tracker_user;
 GRANT user_2 TO expense_tracker_user;
 
+CREATE SCHEMA AUTHORIZATION user_1;
+CREATE SCHEMA AUTHORIZATION user_2;
+
 
 --SELECT * FROM pg_catalog.pg_roles WHERE rolname LIKE '%tracker%';
 --SELECT * FROM pg_catalog.pg_user WHERE usename LIKE '%tracker%';
@@ -124,14 +127,14 @@ CREATE EXTENSION pgcrypto;
 --################################
 
 
-DROP TABLE IF EXISTS expense_tracker.users;
+DROP TABLE IF EXISTS expense_tracker.users CASCADE;
 CREATE TABLE expense_tracker.users ( 
 	       id_user integer NOT NULL GENERATED ALWAYS AS IDENTITY,
 	       user_login CHARACTER VARYING(25) NOT NULL,
 	       user_name CHARACTER VARYING(50) NOT NULL,
 	       user_password CHARACTER VARYING(100) NOT NULL,
            user_desc CHARACTER varying(250),
-	       active character(1) DEFAULT 1 NOT NULL,
+	       active BOOLEAN DEFAULT TRUE NOT NULL,
 	       insert_date timestamp WITHOUT time ZONE DEFAULT CURRENT_TIMESTAMP,
        	   update_date timestamp WITHOUT time ZONE DEFAULT CURRENT_TIMESTAMP,
 CONSTRAINT users_pk PRIMARY KEY(id_user)
@@ -144,7 +147,7 @@ CONSTRAINT users_pk PRIMARY KEY(id_user)
 
 
 -- dodano FK id_user do tabeli
-DROP TABLE IF EXISTS expense_tracker.bank_account_owner;
+DROP TABLE IF EXISTS expense_tracker.bank_account_owner CASCADE;
 CREATE TABLE expense_tracker.bank_account_owner (
 		   id_ba_own integer NOT NULL GENERATED ALWAYS AS IDENTITY,
 		   id_user integer NOT NULL,
@@ -166,29 +169,42 @@ CONSTRAINT bank_account_owner_pk PRIMARY KEY(id_ba_own)
 --#######################################
 
 
-DROP TABLE IF EXISTS expense_tracker.transaction_category;
-CREATE TABLE expense_tracker.transaction_category (
-	       id_trans_cat integer NOT NULL GENERATED ALWAYS AS IDENTITY,
-	       category_name CHARACTER VARYING(50) NOT NULL,
-	       category_description CHARACTER VARYING(250),
-	       active character(1) DEFAULT 1 NOT NULL,
-	       insert_date timestamp WITHOUT time ZONE DEFAULT CURRENT_TIMESTAMP,
-	       update_date timestamp WITHOUT time ZONE DEFAULT CURRENT_TIMESTAMP,
-CONSTRAINT id_trans_cat_pk PRIMARY KEY(id_trans_cat)
+--DROP TABLE IF EXISTS expense_tracker.transaction_category CASCADE;
+--CREATE TABLE expense_tracker.transaction_category (
+--	       id_trans_cat integer NOT NULL GENERATED ALWAYS AS IDENTITY,
+--	       category_name CHARACTER VARYING(50) NOT NULL,
+--	       category_description CHARACTER VARYING(250),
+--	       active character(1) DEFAULT 1 NOT NULL,
+--	       insert_date timestamp WITHOUT time ZONE DEFAULT CURRENT_TIMESTAMP,
+--	       update_date timestamp WITHOUT time ZONE DEFAULT CURRENT_TIMESTAMP,
+--CONSTRAINT id_trans_cat_pk PRIMARY KEY(id_trans_cat)
+--);
+
+--DROP TABLE IF EXISTS expense_tracker.transaction_subcategory CASCADE;
+--CREATE TABLE expense_tracker.transaction_subcategory (
+--	       id_trans_subcat integer NOT NULL GENERATED ALWAYS AS IDENTITY,
+--	       subcategory_name CHARACTER VARYING(50) NOT NULL,
+--	       subcategory_description CHARACTER VARYING(250),
+--	       active character(1) DEFAULT 1 NOT NULL,
+--	       insert_date timestamp WITHOUT time ZONE DEFAULT CURRENT_TIMESTAMP,
+--	       update_date timestamp WITHOUT time ZONE DEFAULT CURRENT_TIMESTAMP,
+--CONSTRAINT id_trans_subcat PRIMARY KEY(id_trans_subcat)
+--);
+
+DROP TABLE IF EXISTS expense_tracker.transaction_category_subcategory;
+CREATE TABLE expense_tracker.transaction_category_subcategory (
+	id_trans_cat_subcat integer NOT NULL GENERATED ALWAYS AS IDENTITY,
+	category_name CHARACTER VARYING(50) NOT NULL,
+	category_description CHARACTER VARYING(250),
+	subcategory_name CHARACTER VARYING(50) NOT NULL UNIQUE,
+	subcategory_description CHARACTER VARYING(250),
+	active character(1) DEFAULT 1 NOT NULL,
+	insert_date timestamp WITHOUT time ZONE DEFAULT CURRENT_TIMESTAMP,
+	update_date timestamp WITHOUT time ZONE DEFAULT CURRENT_TIMESTAMP,
+CONSTRAINT id_trans_cat_subcat_pk PRIMARY KEY(id_trans_cat_subcat)
 );
 
-DROP TABLE IF EXISTS expense_tracker.transaction_subcategory;
-CREATE TABLE expense_tracker.transaction_subcategory (
-	       id_trans_subcat integer NOT NULL GENERATED ALWAYS AS IDENTITY,
-	       subcategory_name CHARACTER VARYING(50) NOT NULL,
-	       subcategory_description CHARACTER VARYING(250),
-	       active character(1) DEFAULT 1 NOT NULL,
-	       insert_date timestamp WITHOUT time ZONE DEFAULT CURRENT_TIMESTAMP,
-	       update_date timestamp WITHOUT time ZONE DEFAULT CURRENT_TIMESTAMP,
-CONSTRAINT id_trans_subcat PRIMARY KEY(id_trans_subcat)
-);
-
-DROP TABLE IF EXISTS expense_tracker.transaction_type;
+DROP TABLE IF EXISTS expense_tracker.transaction_type CASCADE;
 CREATE TABLE expense_tracker.transaction_type (
            id_trans_type integer NOT NULL GENERATED ALWAYS AS IDENTITY,
            transaction_type_name character varying(50) NOT NULL,
@@ -200,13 +216,12 @@ CONSTRAINT transaction_type_pk PRIMARY KEY(id_trans_type)
 );
 
 
-DROP TABLE IF EXISTS expense_tracker.transactions_partitioned;
+DROP TABLE IF EXISTS expense_tracker.transactions_partitioned CASCADE;
 CREATE TABLE expense_tracker.transactions_partitioned (
            id_transaction integer NOT NULL GENERATED ALWAYS AS IDENTITY,
            id_trans_ba integer,
            id_trans_bao integer,
-           id_trans_cat integer,
-           id_trans_subcat integer,
+           id_trans_cat_subcat integer NOT NULL,
            id_trans_type integer,
            id_user integer,
            transaction_date date DEFAULT CURRENT_DATE,
@@ -215,8 +230,7 @@ CREATE TABLE expense_tracker.transactions_partitioned (
            insert_date timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
            update_date timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
 CONSTRAINT id_transaction_pk PRIMARY KEY(id_transaction, transaction_date),
-CONSTRAINT transactions_partitioned_transaction_category_fk FOREIGN KEY(id_trans_cat) REFERENCES expense_tracker.transaction_category(id_trans_cat),
-CONSTRAINT transactions_partitioned_transaction_subcategory_fk FOREIGN KEY(id_trans_subcat) REFERENCES expense_tracker.transaction_subcategory(id_trans_subcat),
+CONSTRAINT transactions_partitioned_transaction_category_subcategory_fk FOREIGN KEY(id_trans_cat_subcat) REFERENCES expense_tracker.transaction_category_subcategory(id_trans_cat_subcat),
 CONSTRAINT transactions_partitioned_users_fk FOREIGN KEY(id_user) REFERENCES expense_tracker.users(id_user),
 CONSTRAINT transactions_partitioned_bank_account_owner_fk FOREIGN KEY(id_trans_bao) REFERENCES expense_tracker.bank_account_owner(id_ba_own),
 CONSTRAINT transactions_partitioned_transaction_type FOREIGN KEY(id_trans_type) REFERENCES expense_tracker.transaction_type(id_trans_type)
@@ -234,24 +248,6 @@ CREATE TABLE expense_tracker.transactions_y2021 PARTITION OF expense_tracker.tra
 --################
 --define functions
 --################
-
-
--- function returns sum of transactions value in given year. Arguments: year in format YYYY
-DROP FUNCTION IF EXISTS expense_tracker.transactions_per_year;
-CREATE OR REPLACE FUNCTION expense_tracker.transactions_per_year(y integer)
-		RETURNS float 
-		LANGUAGE plpgsql
-		AS $$
-			DECLARE yearly_transactions float;
-			BEGIN
-				-- calculate sum of transactions in given year
-				SELECT sum(t.transaction_value)
-				INTO yearly_transactions
-				FROM expense_tracker.transactions partitioned
-				WHERE EXTRACT(YEAR FROM t.transaction_date) = $1;
-			END 
-		$$;
-
 -- function returns transactions from given time interval (day, month, quarter, year). 
 -- Accepts 'day', 'month', 'quarter' or 'year' as argument. Returns table with transactions sum in selected time interval
 DROP FUNCTION expense_tracker.transactions_per_interval;
@@ -286,6 +282,25 @@ CREATE OR REPLACE FUNCTION expense_tracker.transactions_per_interval(t_int TEXT)
 		$$;
 
 
+--############
+--define views
+--############
+CREATE MATERIALIZED VIEW expense_tracker.transactions_per_year_mv AS
+				SELECT EXTRACT(YEAR FROM t.transaction_date) transaction_year,
+				sum(t.transaction_value) total_amount,
+				avg(t.transaction_value) avg_amount
+				FROM expense_tracker.transactions_partitioned t
+				GROUP BY EXTRACT(YEAR FROM t.transaction_date);
+			
+CREATE MATERIALIZED VIEW expense_tracker.transactions_per_month_mv AS
+				SELECT EXTRACT(YEAR FROM t.transaction_date) transaction_year,
+					   EXTRACT(MONTH FROM t.transaction_date) transaction_month,
+				sum(t.transaction_value) total_amount,
+				avg(t.transaction_value) avg_amount
+				FROM expense_tracker.transactions_partitioned t
+				GROUP BY transaction_year, transaction_month;
+
+
 -- function returns all transactions made by given user. Arguments: user_name
 DROP FUNCTION IF EXISTS expense_tracker.transactions_by_user;
 CREATE OR REPLACE FUNCTION expense_tracker.transactions_by_user(user_name TEXT)
@@ -308,3 +323,15 @@ CREATE OR REPLACE FUNCTION expense_tracker.transactions_by_user(user_name TEXT)
 
 CREATE INDEX transactions_partitioned_year_idx ON expense_tracker.transactions_partitioned(EXTRACT (YEAR FROM transaction_date));
 CREATE INDEX transactions_partitioned_month_idx ON expense_tracker.transactions_partitioned(EXTRACT (MONTH FROM transaction_date));
+
+--create trigger
+
+CREATE TRIGGER no_input_if_subcat_dont_match_cat
+AFTER INSERT ON transactions_partitioned
+WHEN NOT EXISTS (SELECT * FROM transaction_category tc WHERE tc.id = transaction_subcategory.id)
+BEGIN
+	SELECT RAISE(FAIL, 'the subcategory must match a category');
+END;
+END
+
+SELECT * FROM pg_catalog.pg_roles pr;
