@@ -14,11 +14,10 @@ BEGIN
 --check if schema already exists and if not, create new schema
 	IF NOT EXISTS(SELECT 1 FROM information_schema.schemata
 				   WHERE schema_name = user_schema_name) THEN
---	EXECUTE 'DROP SCHEMA IF EXISTS ' || user_schema_name || ' CASCADE';
 	EXECUTE 'CREATE SCHEMA ' || user_schema_name;
 	END IF;
 	
-
+--check if user exists and if not, create new user
 	IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_user 
 					WHERE usename = username) THEN
 		EXECUTE 'CREATE USER ' || username;
@@ -70,17 +69,6 @@ BEGIN
 				update_date timestamp WITHOUT time ZONE DEFAULT CURRENT_TIMESTAMP,
 			CONSTRAINT id_trans_cat_subcat_pk PRIMARY KEY(id_trans_cat_subcat)
 );';
-
---	EXECUTE 'DROP TABLE IF EXISTS ' || user_schema_name || '.transaction_subcategory';
---	EXECUTE 'CREATE TABLE ' || user_schema_name || '.transaction_subcategory (
---		       id_trans_subcat integer NOT NULL GENERATED ALWAYS AS IDENTITY,
---		       subcategory_name CHARACTER VARYING(50) NOT NULL,
---		       subcategory_description CHARACTER VARYING(250),
---		       active BOOLEAN DEFAULT TRUE NOT NULL,
---		       insert_date timestamp WITHOUT time ZONE DEFAULT CURRENT_TIMESTAMP,
---		       update_date timestamp WITHOUT time ZONE DEFAULT CURRENT_TIMESTAMP,
---	CONSTRAINT id_trans_subcat PRIMARY KEY(id_trans_subcat)
---	);';
 
 	EXECUTE 'DROP TABLE IF EXISTS ' || user_schema_name || '.transaction_type CASCADE';
 	EXECUTE 'CREATE TABLE ' || user_schema_name || '.transaction_type (
@@ -192,5 +180,3 @@ CREATE OR REPLACE FUNCTION transactions_per_interval(t_int TEXT, user_schema_nam
 --############################################
 
 CALL setup_expense_tracker('testuser5');
-REVOKE CREATE ON SCHEMA testuser5
-'REVOKE CREATE ON SCHEMA ' || user_schema_name || ' TO ' || username;
